@@ -1,0 +1,114 @@
+# env
+env: cartpole_swingup
+distractor: None
+# IMPORTANT: if action_repeat is used the effective number of env steps needs to be
+# multiplied by action_repeat in the result graphs.
+# This is a common practice for a fair comparison.
+# See the 2nd paragraph in Appendix C of SLAC: https://arxiv.org/pdf/1907.00953.pdf
+# See Dreamer TF2's implementation: https://github.com/danijar/dreamer/blob/02f0210f5991c7710826ca7881f19c64a012290c/dreamer.py#L340
+action_repeat: 8
+
+# train
+num_train_steps: 100010
+num_train_iters: 1
+num_seed_steps: 1000
+replay_buffer_capacity: 100000
+seed: 1
+# eval
+eval_frequency: 1250
+num_eval_episodes: 10
+# misc
+log_frequency_step: 100000
+log_save_tb: false
+save_video: false
+device: cuda
+
+# observation
+image_size: 84
+image_pad: 4
+frame_stack: 3
+# global params
+lr: 1e-3
+batch_size: 128
+horizon: 5
+factor: 0
+
+# for pre-training ablation
+p: false
+
+# agent configuration
+agent:
+  name: ksl
+  class: ???
+  params:
+    obs_shape: ??? # to be specified later
+    action_shape: ??? # to be specified later
+    action_range: ??? # to be specified later
+    device: ${device}
+    encoder_cfg: ${encoder}
+    critic_cfg: ${critic}
+    actor_cfg: ${actor}
+    discount: 0.99
+    init_temperature: 0.1
+    lr: ${lr}
+    actor_update_frequency: 2
+    critic_tau: 0.01
+    critic_target_update_frequency: 2  # orig 2
+    batch_size: ${batch_size}
+    ksl_update_frequency: 1
+    k: 3
+    h: 3
+    connected: True
+    critic_seq: False
+    critic_nstep: False
+    shared_enc: False
+    recon: False
+    covar: False
+    r_pred: False
+    clip_grad: False
+    mut: False
+    repr: True
+    residual: False
+    a_pred: False
+    mi_min: False
+    action_repeat: 0
+    env: ???
+
+critic:
+  class: ksl_h.Critic
+  params:
+    encoder_cfg: ${agent.params.encoder_cfg}
+    action_shape: ${agent.params.action_shape}
+    hidden_dim: 1024
+    hidden_depth: 2
+
+actor:
+  class: ksl_h.Actor
+  params:
+    encoder_cfg: ${agent.params.encoder_cfg}
+    action_shape: ${agent.params.action_shape}
+    hidden_depth: 2
+    hidden_dim: 1024
+    log_std_bounds: [-10, 2]
+    n_latents: 1
+
+encoder:
+  class: ksl_h.Encoder
+  params:
+      obs_shape: ${agent.params.obs_shape}
+      feature_dim: 50
+
+ksl:
+  class: ksl_h.KSL
+  params:
+    critic_online: ???
+    critic_momentum: ???
+    action_shape: ???
+
+
+# For keeping track of runs via Hydra (optional)
+# hydra configuration
+#hydra:
+#  name: ${env}
+#  run:
+#    dir: ./runs/${now:%Y.%m.%d}/${now:%H%M%S}_${hydra.job.override_dirname}
