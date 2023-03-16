@@ -888,7 +888,7 @@ class KSLAgent:
 
 		return loss, outs
 
-	def compute_grads(self, replay_buffer):
+	def compare_grads(self, replay_buffer):
 		obses, actions, obses_next, rewards, not_dones = replay_buffer.sample_traj_efficient(self.batch_size,
 	 																					 self.replay_len)
 
@@ -954,7 +954,7 @@ class KSLAgent:
 				utils.soft_update_params(self.ksls[i].encoder_online, self.ksls[i].encoder_momentum, 0.05)
 
 		# Check grad magnitudes
-		if step % 10000 == 0:
+		if (step // 8) % 1000 == 0:
 			self.compare_grads(replay_buffer)
 
 	def save(self, dir):
