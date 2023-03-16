@@ -181,7 +181,7 @@ ef = m[args.env]['ef']
 lr = m[args.env]['lr']
 ns = m[args.env]['ns']
 
-seeds = [np.random.randint(1000) for _ in range(5)]
+seeds = [np.random.randint(1000) for _ in range(1)]
 
 for seed in seeds:
 	subprocess.run(
