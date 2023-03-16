@@ -897,7 +897,7 @@ class KSLAgent:
 		outs = None
 		loss, outs = self.update_h_sharing_layer2(1, obses, actions, rewards, outs, self.levels[1])
 
-		self.update_critic_nstep(1, obses, actions, rewards, not_dones, self.levels[1], logger, step)
+
 
 		self.ksl_optimizers[1].zero_grad()
 		loss.backward()
@@ -907,6 +907,19 @@ class KSLAgent:
 			g.extend(p.grad.reshape(-1).cpu().numpy())
 
 		print(f'Grad norm level 2 from only level 2: {np.sum(np.array(g)**2)**0.5}')
+		self.ksl_optimizers[1].zero_grad()
+
+
+		self.update_critic_nstep(1, obses, actions, rewards, not_dones, self.levels[1], logger, step)
+		self.ksl_optimizers[1].zero_grad()
+		loss.backward()
+
+		g = []
+		for p in self.ksls[1].encoder_online.parameters():
+			g.extend(p.grad.reshape(-1).cpu().numpy())
+
+		print(f'Grad norm level 2 from RL: {np.sum(np.array(g) ** 2) ** 0.5}')
+		self.ksl_optimizers[1].zero_grad()
 
 		# Now repeat but also include the
 		outs = None
