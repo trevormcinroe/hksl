@@ -134,6 +134,7 @@ class Workspace:
             float(self.env.action_space.high.max())
         ]
         cfg.agent.params.env = cfg.env
+        print(cfg.agent)
         self.agent = hydra.utils.instantiate(cfg.agent)
         self.agent.action_repeat = cfg.action_repeat
 
