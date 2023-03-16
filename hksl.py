@@ -893,16 +893,17 @@ class KSLAgent:
 	 																					 self.replay_len)
 
 		# Perform a forward pass through level 2's stuff
-		outs = None
-		loss, outs = self.update_h_sharing_layer2(1, obses, actions, rewards, outs, self.levels[1])
-		self.ksl_optimizers[1].zero_grad()
-		loss.backward()
+		for _ in range(10):
+			outs = None
+			loss, outs = self.update_h_sharing_layer2(1, obses, actions, rewards, outs, self.levels[1])
+			self.ksl_optimizers[1].zero_grad()
+			loss.backward()
 
-		g = []
-		for p in self.ksls[1].encoder_online.parameters():
-			g.extend(p.grad.reshape(-1).cpu().numpy())
+			g = []
+			for p in self.ksls[1].encoder_online.parameters():
+				g.extend(p.grad.reshape(-1).cpu().numpy())
 
-		print(f'Grad norm level 2 from only level 2: {np.sum(np.array(g)**2)**0.5}')
+			print(f'Grad norm level 2 from only level 2: {np.sum(np.array(g)**2)**0.5}')
 
 		# Now repeat but also include the
 		outs = None
