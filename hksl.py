@@ -888,6 +888,36 @@ class KSLAgent:
 
 		return loss, outs
 
+	def compute_grads(self, replay_buffer):
+		obses, actions, obses_next, rewards, not_dones = replay_buffer.sample_traj_efficient(self.batch_size,
+	 																					 self.replay_len)
+
+		# Perform a forward pass through level 2's stuff
+		outs = None
+		loss, outs = self.update_h_sharing_layer2(1, obses, actions, rewards, outs, self.levels[1])
+		self.ksl_optimizers[1].zero_grad()
+		loss.backward()
+
+		g = []
+		for p in self.ksls[1].encoder_online.parameters():
+			g.extend(p.grad.reshape(-1).cpu().numpy())
+
+		print(f'Grad norm level 2 from only level 2: {np.sum(np.array(g)**2)**0.5}')
+
+		# Now repeat but also include the
+		outs = None
+		_, outs = self.update_h_sharing_layer2(1, obses, actions, rewards, outs, self.levels[1], gather_loss=False)
+		loss, _ = self.update_h_sharing_layer2(0, obses, actions, rewards, outs, self.levels[0])
+
+		self.ksl_optimizers[1].zero_grad()
+		loss.backward()
+		g = []
+		for p in self.ksls[1].encoder_online.parameters():
+			g.extend(p.grad.reshape(-1).cpu().numpy())
+
+		print(f'Grad norm level 2 including level 1: {np.sum(np.array(g) ** 2) ** 0.5}')
+
+
 	def update(self, replay_buffer, logger, step):
 		"""Performs an Actor, alpha, Critic, and KSL update according to the class-speficied frequencies.
 		Also, performs EMA updates.
@@ -922,6 +952,10 @@ class KSLAgent:
 				utils.soft_update_params(self.critics[i].Q1, self.critic_targets[i].Q1, 0.01)
 				utils.soft_update_params(self.critics[i].Q2, self.critic_targets[i].Q2, 0.01)
 				utils.soft_update_params(self.ksls[i].encoder_online, self.ksls[i].encoder_momentum, 0.05)
+
+		# Check grad magnitudes
+		if step % 10000 == 0:
+			self.compare_grads(replay_buffer)
 
 	def save(self, dir):
 		torch.save(
