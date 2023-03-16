@@ -954,6 +954,7 @@ class KSLAgent:
 				utils.soft_update_params(self.ksls[i].encoder_online, self.ksls[i].encoder_momentum, 0.05)
 
 		# Check grad magnitudes
+		print(step)
 		if (step // 8) % 1000 == 0:
 			self.compare_grads(replay_buffer)
 
