@@ -888,22 +888,25 @@ class KSLAgent:
 
 		return loss, outs
 
-	def compare_grads(self, replay_buffer):
+	def compare_grads(self, replay_buffer, logger, step):
 		obses, actions, obses_next, rewards, not_dones = replay_buffer.sample_traj_efficient(self.batch_size,
 	 																					 self.replay_len)
 
 		# Perform a forward pass through level 2's stuff
-		for _ in range(10):
-			outs = None
-			loss, outs = self.update_h_sharing_layer2(1, obses, actions, rewards, outs, self.levels[1])
-			self.ksl_optimizers[1].zero_grad()
-			loss.backward()
 
-			g = []
-			for p in self.ksls[1].encoder_online.parameters():
-				g.extend(p.grad.reshape(-1).cpu().numpy())
+		outs = None
+		loss, outs = self.update_h_sharing_layer2(1, obses, actions, rewards, outs, self.levels[1])
 
-			print(f'Grad norm level 2 from only level 2: {np.sum(np.array(g)**2)**0.5}')
+		self.update_critic_nstep(1, obses, actions, rewards, not_dones, self.levels[1], logger, step)
+
+		self.ksl_optimizers[1].zero_grad()
+		loss.backward()
+
+		g = []
+		for p in self.ksls[1].encoder_online.parameters():
+			g.extend(p.grad.reshape(-1).cpu().numpy())
+
+		print(f'Grad norm level 2 from only level 2: {np.sum(np.array(g)**2)**0.5}')
 
 		# Now repeat but also include the
 		outs = None
@@ -957,7 +960,7 @@ class KSLAgent:
 		# Check grad magnitudes
 		# print(step)
 		if step % (1000 // 8) == 0:
-			self.compare_grads(replay_buffer)
+			self.compare_grads(replay_buffer, logger, step)
 
 	def save(self, dir):
 		torch.save(
