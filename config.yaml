@@ -38,7 +38,7 @@ p: false
 
 # agent configuration
 agent:
-  name: ksl
+  name: hksl
   class: ???
   params:
     obs_shape: ??? # to be specified later
@@ -75,7 +75,7 @@ agent:
     env: ???
 
 critic:
-  class: ksl_h.Critic
+  class: hksl.Critic
   params:
     encoder_cfg: ${agent.params.encoder_cfg}
     action_shape: ${agent.params.action_shape}
@@ -83,7 +83,7 @@ critic:
     hidden_depth: 2
 
 actor:
-  class: ksl_h.Actor
+  class: hksl.Actor
   params:
     encoder_cfg: ${agent.params.encoder_cfg}
     action_shape: ${agent.params.action_shape}
@@ -93,13 +93,13 @@ actor:
     n_latents: 1
 
 encoder:
-  class: ksl_h.Encoder
+  class: hksl.Encoder
   params:
       obs_shape: ${agent.params.obs_shape}
       feature_dim: 50
 
 ksl:
-  class: ksl_h.KSL
+  class: hksl.KSLAgent
   params:
     critic_online: ???
     critic_momentum: ???
