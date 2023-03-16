@@ -196,72 +196,74 @@ class Workspace:
         start_time = time.time()
 
         eval_mean = []
+        from tqdm import tqdm
+        with tqdm(total=self.cfg.num_train_steps // self.cfg.action_repeat) as pbar:
+            while self.step < (self.cfg.num_train_steps // self.cfg.action_repeat):
 
-        while self.step < (self.cfg.num_train_steps // self.cfg.action_repeat):
+                if done:
 
-            if done:
+                    # Wanna save video?
+                    # if self.step == (self.cfg.num_train_steps // self.cfg.action_repeat):
+                    #     self.video_recorder = VideoRecorder(self.work_dir)
 
-                # Wanna save video?
-                # if self.step == (self.cfg.num_train_steps // self.cfg.action_repeat):
-                #     self.video_recorder = VideoRecorder(self.work_dir)
+                    if self.step > 0:
+                        self.logger.log('train/duration',
+                                        time.time() - start_time, self.step)
+                        start_time = time.time()
+                        self.logger.dump(
+                            self.step, save=(self.step > self.cfg.num_seed_steps))
 
-                if self.step > 0:
-                    self.logger.log('train/duration',
-                                    time.time() - start_time, self.step)
-                    start_time = time.time()
-                    self.logger.dump(
-                        self.step, save=(self.step > self.cfg.num_seed_steps))
+                    # evaluate agent periodically
+                    if self.step % self.cfg.eval_frequency == 0:
+                        self.logger.log('eval/episode', episode, self.step)
 
-                # evaluate agent periodically
-                if self.step % self.cfg.eval_frequency == 0:
-                    self.logger.log('eval/episode', episode, self.step)
+                        means, sds = self.evaluate()
+                        eval_mean.append(means)
 
-                    means, sds = self.evaluate()
-                    eval_mean.append(means)
+                    self.logger.log('train/episode_reward', episode_reward,
+                                    self.step)
 
-                self.logger.log('train/episode_reward', episode_reward,
-                                self.step)
+                    obs = self.env.reset()
+                    done = False
+                    episode_reward = 0
 
-                obs = self.env.reset()
-                done = False
-                episode_reward = 0
+                    episode_step = 0
+                    episode += 1
 
-                episode_step = 0
-                episode += 1
+                    self.logger.log('train/episode', episode, self.step)
 
-                self.logger.log('train/episode', episode, self.step)
+                # sample action for data collection
+                if self.step < self.cfg.num_seed_steps:
+                    action = self.env.action_space.sample()
+                else:
+                    with utils.eval_mode(self.agent):
+                        action = self.agent.act(obs, sample=True)
 
-            # sample action for data collection
-            if self.step < self.cfg.num_seed_steps:
-                action = self.env.action_space.sample()
-            else:
-                with utils.eval_mode(self.agent):
-                    action = self.agent.act(obs, sample=True)
+                # run training update
+                if self.step >= self.cfg.num_seed_steps:
+                    for _ in range(self.cfg.num_train_iters):
+                        self.agent.update(self.replay_buffer, self.logger,
+                                          self.step)
 
-            # run training update
-            if self.step >= self.cfg.num_seed_steps:
-                for _ in range(self.cfg.num_train_iters):
-                    self.agent.update(self.replay_buffer, self.logger,
-                                      self.step)
+                next_obs, reward, done, info = self.env.step(action)
 
-            next_obs, reward, done, info = self.env.step(action)
+                # allow infinite bootstrap
+                done = float(done)
+                done_no_max = 0 if episode_step + 1 == self.env._max_episode_steps else done
+                episode_reward += reward
 
-            # allow infinite bootstrap
-            done = float(done)
-            done_no_max = 0 if episode_step + 1 == self.env._max_episode_steps else done
-            episode_reward += reward
+                if done:
+                    eeo = 1
+                else:
+                    eeo = 0
 
-            if done:
-                eeo = 1
-            else:
-                eeo = 0
+                self.replay_buffer.add(obs, action, reward, next_obs, done,
+                                       done_no_max, eeo)
 
-            self.replay_buffer.add(obs, action, reward, next_obs, done,
-                                   done_no_max, eeo)
-
-            obs = next_obs
-            episode_step += 1
-            self.step += 1
+                obs = next_obs
+                episode_step += 1
+                self.step += 1
+                pbar.update(1)
 
         with open(f'./{here}/{self.agent.name}-{self.cfg.env}-s{self.cfg.seed}-b{self.cfg.batch_size}-k{self.cfg.agent.params.k}-h{self.cfg.agent.params.h}-recon{self.agent.recon}-covar{self.agent.covar}-rpred{self.agent.r_pred}-p{self.cfg.p}-factor{self.cfg.factor}-connected{self.agent.connected}-mean-{self.step}.data', 'wb') as f:
             pickle.dump(eval_mean, f)
