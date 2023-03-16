@@ -690,7 +690,7 @@ class KSLAgent:
 		assert action.ndim == 2 and action.shape[0] == 1
 		return utils.to_np(action[0])
 
-	def update_critic_nstep(self, h, obses, actions, rewards, not_dones, steps, logger, step):
+	def update_critic_nstep(self, h, obses, actions, rewards, not_dones, steps, logger, step, verbose=False):
 		first_idx = np.random.choice(len(self.levels[h]) - 1)
 
 		action_idxs = [x for x in range(first_idx, steps[first_idx + 1])]
@@ -746,6 +746,8 @@ class KSLAgent:
 		for p in self.critics[h].encoder.parameters():
 			g.extend(p.grad.reshape(-1).cpu().numpy())
 		self.critic_grads[h + 1].append(np.sum(np.array(g) ** 2) ** 0.5)
+		if verbose:
+			print(f'Critic grad: {np.sum(np.array(g) ** 2) ** 0.5}')
 
 		self.critic_optimizers[h].step()
 
@@ -907,19 +909,10 @@ class KSLAgent:
 			g.extend(p.grad.reshape(-1).cpu().numpy())
 
 		print(f'Grad norm level 2 from only level 2: {np.sum(np.array(g)**2)**0.5}')
-		self.ksl_optimizers[1].step()
+		# self.ksl_optimizers[1].step()
 
 
-		self.update_critic_nstep(1, obses, actions, rewards, not_dones, self.levels[1], logger, step)
-		self.ksl_optimizers[1].zero_grad()
-		loss.backward()
-
-		g = []
-		for p in self.ksls[1].encoder_online.parameters():
-			g.extend(p.grad.reshape(-1).cpu().numpy())
-
-		print(f'Grad norm level 2 from RL: {np.sum(np.array(g) ** 2) ** 0.5}')
-		self.ksl_optimizers[1].step()
+		self.update_critic_nstep(1, obses, actions, rewards, not_dones, self.levels[1], logger, step, True)
 
 		# Now repeat but also include the
 		outs = None
