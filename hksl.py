@@ -907,7 +907,7 @@ class KSLAgent:
 			g.extend(p.grad.reshape(-1).cpu().numpy())
 
 		print(f'Grad norm level 2 from only level 2: {np.sum(np.array(g)**2)**0.5}')
-		self.ksl_optimizers[1].zero_grad()
+		self.ksl_optimizers[1].step()
 
 
 		self.update_critic_nstep(1, obses, actions, rewards, not_dones, self.levels[1], logger, step)
@@ -919,7 +919,7 @@ class KSLAgent:
 			g.extend(p.grad.reshape(-1).cpu().numpy())
 
 		print(f'Grad norm level 2 from RL: {np.sum(np.array(g) ** 2) ** 0.5}')
-		self.ksl_optimizers[1].zero_grad()
+		self.ksl_optimizers[1].step()
 
 		# Now repeat but also include the
 		outs = None
@@ -933,7 +933,7 @@ class KSLAgent:
 			g.extend(p.grad.reshape(-1).cpu().numpy())
 
 		print(f'Grad norm level 2 including level 1: {np.sum(np.array(g) ** 2) ** 0.5}')
-
+		self.ksl_optimizers[1].step()
 
 	def update(self, replay_buffer, logger, step):
 		"""Performs an Actor, alpha, Critic, and KSL update according to the class-speficied frequencies.
