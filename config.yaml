@@ -16,7 +16,7 @@ replay_buffer_capacity: 100000
 seed: 1
 # eval
 eval_frequency: 1250
-num_eval_episodes: 10
+num_eval_episodes: 1
 # misc
 log_frequency_step: 100000
 log_save_tb: false
