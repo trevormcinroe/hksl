@@ -12,11 +12,27 @@ import utils
 from logger import Logger
 from replay_buffer import ReplayBuffer
 from video import VideoRecorder
-from distracting_control import suite
+# from distracting_control import suite
+
 
 torch.backends.cudnn.benchmark = True
 import os
 here = os.path.dirname(os.path.abspath(__file__))
+
+import wandb
+import json
+
+"""LOGGING"""
+# import os
+# print(os.listdir('../../'))
+# qqq
+with open(f'{here.replace("hksl_orig/hksl", "wandb.txt")}', 'r') as f:
+    API_KEY = json.load(f)['api_key']
+
+import os
+os.environ['WANDB_API_KEY'] = API_KEY
+os.environ['WANDB_DIR'] = './wandb'
+os.environ['WANDB_CONFIG_DIR'] = './wandb'
 
 def make_env(cfg):
     """Helper function to create dm_control environment"""
@@ -109,6 +125,13 @@ class Workspace:
 
         self.cfg = cfg
 
+        wandb.init(
+            project='spr',
+            # project='testing-wandb',
+            entity='trevor-mcinroe',
+            name=f'{cfg.env}-k{cfg.agent.params.k}',
+        )
+
         self.logger = Logger(self.work_dir,
                              save_tb=cfg.log_save_tb,
                              log_frequency=cfg.log_frequency_step,
@@ -182,11 +205,13 @@ class Workspace:
                         self.step)
         self.logger.dump(self.step)
 
+        wandb.log({'returns': average_episode_reward, 'env_step': self.step * self.cfg.action_repeat})
+
         return average_episode_reward, sd_episode_reward
 
     def run(self):
         print(f'Eval freq: {self.cfg.eval_frequency}')
-        print(f'k: {self.agent.k}')
+        # print(f'k: {self.agent.k}')
         print(f'lr: {self.cfg.lr}')
         print(f'Agent: {self.agent.name}')
         print(f'Env: {self.cfg.env}')
@@ -242,8 +267,7 @@ class Workspace:
                 # run training update
                 if self.step >= self.cfg.num_seed_steps:
                     for _ in range(self.cfg.num_train_iters):
-                        self.agent.update(self.replay_buffer, self.logger,
-                                          self.step)
+                        self.agent.update(self.replay_buffer, self.step)
 
                 next_obs, reward, done, info = self.env.step(action)
 

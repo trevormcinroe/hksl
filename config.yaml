@@ -75,7 +75,7 @@ agent:
     env: ???
 
 critic:
-  class: hksl.Critic
+  class: spr.Critic
   params:
     encoder_cfg: ${agent.params.encoder_cfg}
     action_shape: ${agent.params.action_shape}
@@ -83,7 +83,7 @@ critic:
     hidden_depth: 2
 
 actor:
-  class: hksl.Actor
+  class: spr.Actor
   params:
     encoder_cfg: ${agent.params.encoder_cfg}
     action_shape: ${agent.params.action_shape}
@@ -93,7 +93,7 @@ actor:
     n_latents: 1
 
 encoder:
-  class: hksl.Encoder
+  class: spr.Encoder
   params:
       obs_shape: ${agent.params.obs_shape}
       feature_dim: 50

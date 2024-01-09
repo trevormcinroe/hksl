@@ -6,6 +6,7 @@ import numpy as np
 parser = argparse.ArgumentParser()
 parser.add_argument('--env')
 parser.add_argument('--distractor', default='None')
+parser.add_argument('--k', type=int)
 
 args = parser.parse_args()
 
@@ -185,6 +186,6 @@ seeds = [np.random.randint(1000) for _ in range(1)]
 
 for seed in seeds:
 	subprocess.run(
-		f'python3 train.py save_video=False agent.class=hksl.KSLAgent num_train_steps={ns} env={args.env} distractor={args.distractor} lr={lr} action_repeat={ar} agent.params.k=7 agent.params.h=2 factor=0 agent.params.mi_min=False agent.params.clip_grad=False seed={seed} eval_frequency={ef} agent.params.connected=True agent.params.critic_nstep=True agent.params.shared_enc=False agent.params.recon=False agent.params.covar=False agent.params.recon=False agent.params.mut=False agent.params.repr=True agent.params.r_pred=False agent.params.residual=False',
+		f'python3 train.py save_video=False agent.class=spr.SPRAgent agent.params.k={args.k} num_train_steps={ns} env={args.env} distractor={args.distractor} lr={lr} action_repeat={ar} seed={seed} eval_frequency={ef} ',
 		shell=True
 	)
